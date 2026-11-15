@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#08090b">
+  <meta name="description" content="比特币减半前 500 天买入、减半后 500 天卖出。用 Bitstamp 周线对照历史买卖点，并查看下一次买入信号。">
+  <title>比特币减半 ±500 天周期信号</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2308090b'/%3E%3Cpath d='M8 24 V8 M16 26 V6 M24 22 V10' stroke='%23ff6a2c' stroke-width='2'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <main class="wrap">
+    <header class="hero">
+      <p class="kicker">BTC/USD · BITSTAMP · 周线</p>
+      <h1>比特币减半 ±<span id="title-days">500</span> 天周期信号</h1>
+      <p class="subtitle">减半前 <span id="sub-before">500</span> 天买入，减半后 <span id="sub-after">500</span> 天卖出</p>
+      <div class="metrics">
+        <section class="countdown" aria-live="polite">
+          <p class="count-sentence" id="count-sentence">正在计算下一个买入信号…</p>
+          <p class="count-num"><span id="count-days">—</span><span class="unit">天</span></p>
+          <p class="count-sub num" id="count-sub">—</p>
+        </section>
+        <div class="stat-grid">
+          <article class="stat">
+            <p class="label">当前 BTC 价格</p>
+            <p class="value num" id="price-now">—</p>
+            <p class="hint" id="price-hint">最近日收盘</p>
+          </article>
+          <article class="stat">
+            <p class="label">200 周均线</p>
+            <p class="value num" id="ma-now">—</p>
+            <p class="hint">近 200 根周收盘的平均</p>
+          </article>
+          <article class="stat">
+            <p class="label">相对 200 周均线</p>
+            <p class="value num" id="ma-gap">—</p>
+            <p class="hint" id="ma-gap-label">—</p>
+          </article>
+        </div>
+      </div>
+    </header>
+
+    <section class="panel" id="chart-section">
+      <div class="panel-head">
+        <h2>周 K 与周期标记</h2>
+        <p class="note">纵轴默认对数。手机上可以双指缩放、左右拖动。</p>
+      </div>
+      <div class="toolbar">
+        <div class="ranges" id="ranges" role="group" aria-label="时间范围"></div>
+        <div class="seg" role="group" aria-label="纵轴坐标">
+          <button type="button" id="scale-log" class="is-on" aria-pressed="true">对数</button>
+          <button type="button" id="scale-linear" aria-pressed="false">线性</button>
+        </div>
+      </div>
+      <div class="chart-host" id="chart-host">
+        <div id="chart"></div>
+        <canvas id="overlay" aria-hidden="true"></canvas>
+        <div id="tip" class="tip" hidden></div>
+        <p id="chart-msg" class="chart-msg">正在准备周线…</p>
+      </div>
+      <ul class="legend">
+        <li><i class="swatch candle"></i>周 K</li>
+        <li><i class="swatch ma"></i>200 周均线</li>
+        <li><i class="swatch band"></i>持有窗口</li>
+        <li><i class="swatch half"></i>减半</li>
+        <li><i class="swatch next"></i>下一个买入信号</li>
+      </ul>
+      <p class="status" id="status" aria-live="polite">正在读取本地行情…</p>
+    </section>
+
+    <section class="panel" id="backtest">
+      <div class="panel-head">
+        <h2>历史回测</h2>
+        <p class="note">拖动天数后，主图和这张表一起重算。</p>
+      </div>
+      <div class="slider-row">
+        <label for="window-days">窗口天数</label>
+        <input id="window-days" type="range" min="300" max="700" step="1" value="500" aria-valuemin="300" aria-valuemax="700">
+        <div class="slider-side">
+          <output class="num" id="window-readout" for="window-days">±500 天</output>
+          <button type="button" class="text-btn" id="reset-days">恢复 500</button>
+        </div>
+      </div>
+      <p class="note" id="summary-line">—</p>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>周期</th>
+              <th>买入日期</th>
+              <th>买入价</th>
+              <th>卖出日期</th>
+              <th>卖出价</th>
+              <th>涨幅</th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+      <p class="table-note" id="method-note">价格按信号日所在周的周收盘价计算。该周没有数据时，改用 10 天内最近的周收盘。</p>
+      <p class="table-note" id="table-note"></p>
+    </section>
+
+    <section class="panel" id="reliability">
+      <h2>这个信号靠谱吗</h2>
+      <p class="note">下面只整理这个规则对得上、以及可能对不上的地方，不是买卖建议。</p>
+      <div class="split">
+        <article class="card support">
+          <h3>支持的理由</h3>
+          <ul>
+            <li>三轮完整周期都吻合。减半前约 500 天靠近熊市底部，减半后约 500 天靠近牛市顶部。</li>
+            <li>和减半带来的供给冲击、社会情绪周期都能对应上。新币供应减半之后，价格往往要过一段时间才走到拥挤的一端。</li>
+          </ul>
+        </article>
+        <article class="card risk">
+          <h3>风险</h3>
+          <ul>
+            <li>样本只有 3 个，统计意义有限。三次对上，不等于下一次还会对上。</li>
+            <li>信号给的是时间窗口，不是价格底。历史熊市从高点回撤 77% 到 85%，窗口到了，价格仍可能继续跌。</li>
+            <li>ETF 和机构资金进场后，市场结构可能已经变了。过去由散户情绪主导的节奏，不一定原样重复。</li>
+            <li>宏观因素（利率、美元）可能压过周期。流动性收紧时，减半本身托不住价格。</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap foot">
+    <p>数据来源：Bitstamp</p>
+    <p>最后更新时间：<time id="updated">—</time></p>
+    <p id="data-span"></p>
+    <p class="disclaimer">仅供研究，不构成投资建议</p>
+  </footer>
+
+  <script src="vendor/lightweight-charts.standalone.production.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/cycle.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

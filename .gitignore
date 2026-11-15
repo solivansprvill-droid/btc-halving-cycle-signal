@@ -1,0 +1,5 @@
+.workbuddy/
+*.genie
+preview-*.png
+data/probe*.json
+vendor/typings.d.ts
